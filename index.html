@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>note サムネイル画像生成ツール</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #41c9b4;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #41c9b4;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .generate-btn {
+            background: #41c9b4;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        .generate-btn:hover {
+            background: #369884;
+        }
+        
+        .preview-section {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        canvas {
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            max-width: 100%;
+            margin: 20px 0;
+        }
+        
+        .download-btn {
+            background: #4267B2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .download-btn:hover {
+            background: #365899;
+        }
+        
+        .cropper-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        
+        .cropper-content {
+            position: relative;
+            margin: 5% auto;
+            padding: 0;
+            width: 80%;
+            max-width: 800px;
+            background: white;
+            border-radius: 12px;
+        }
+        
+        .cropper-header {
+            padding: 20px 20px 0 20px;
+        }
+        
+        .cropper-controls {
+            padding: 0 20px 20px 20px;
+        }
+        
+        .cropper-preview {
+            position: relative;
+            width: 100%;
+            height: 315px;
+            overflow: hidden;
+            margin: 0;
+        }
+        
+        .cropper-image {
+            position: absolute;
+            width: 100%;
+            height: auto;
+            transition: top 0.2s ease;
+            box-sizing: border-box;
+        }
+        
+        .cropper-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            pointer-events: none;
+        }
+        
+        .position-control {
+            margin: 20px 0;
+        }
+        
+        .position-slider {
+            width: 100%;
+            margin: 10px 0;
+            padding: 0;
+        }
+        
+        .modal-buttons {
+            text-align: right;
+            margin-top: 20px;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .cancel-btn {
+            background: #ccc;
+            color: #333;
+        }
+        
+        .apply-btn {
+            background: #41c9b4;
+            color: white;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>note サムネイル画像生成ツール</h1>
+        
+        <form id="thumbnailForm">
+            <div class="form-group">
+                <label for="title">記事タイトル</label>
+                <textarea id="title" placeholder="記事のタイトルを入力してください" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="summary">記事概要（オプション）</label>
+                <textarea id="summary" placeholder="記事の概要を入力してください（3行まで）"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="backgroundImage">背景画像（オプション）</label>
+                <input type="file" id="backgroundImage" accept="image/*">
+            </div>
+            
+            <div class="form-group">
+                <label for="watermark">ウォーターマーク（オプション）</label>
+                <input type="text" id="watermark" placeholder="右下に表示する名前を入力">
+            </div>
+            
+            <button type="submit" class="generate-btn">サムネイル生成</button>
+        </form>
+        
+        <div class="preview-section">
+            <canvas id="thumbnailCanvas" width="1200" height="630" style="display: none;"></canvas>
+            <div id="downloadSection" style="display: none;">
+                <a id="downloadBtn" class="download-btn" download="note-thumbnail.png">PNG でダウンロード</a>
+                <a id="downloadJpgBtn" class="download-btn" download="note-thumbnail.jpg">JPG でダウンロード</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cropper Modal -->
+    <div id="cropperModal" class="cropper-modal">
+        <div class="cropper-content">
+            <div class="cropper-header">
+                <button class="close-btn" onclick="closeCropperModal()">&times;</button>
+                <h3>背景画像の位置調整</h3>
+            </div>
+            
+            <div class="cropper-preview">
+                <img id="cropperImage" class="cropper-image" />
+                <div class="cropper-overlay"></div>
+            </div>
+            
+            <div class="cropper-controls">
+                <div class="position-control">
+                    <label for="positionSlider">縦位置調整:</label>
+                    <input type="range" id="positionSlider" class="position-slider" min="0" max="100" value="50">
+                </div>
+                
+                <div class="modal-buttons">
+                    <button class="modal-btn cancel-btn" onclick="closeCropperModal()">キャンセル</button>
+                    <button class="modal-btn apply-btn" onclick="applyCrop()">適用</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('thumbnailCanvas');
+        const ctx = canvas.getContext('2d');
+        const form = document.getElementById('thumbnailForm');
+        const downloadSection = document.getElementById('downloadSection');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadJpgBtn = document.getElementById('downloadJpgBtn');
+        
+        let currentBackgroundImage = null;
+        let cropPosition = 50; // パーセンテージ (0-100)
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            generateThumbnail();
+        });
+
+        function generateThumbnail() {
+            const title = document.getElementById('title').value;
+            const summary = document.getElementById('summary').value;
+            const watermark = document.getElementById('watermark').value;
+            const backgroundImageInput = document.getElementById('backgroundImage');
+
+            // キャンバスをクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 背景画像がある場合はそれを使用、ない場合はグラデーション
+            if (currentBackgroundImage) {
+                // クロップ位置を適用した背景画像を描画
+                const scale = canvas.width / currentBackgroundImage.width;
+                const scaledHeight = currentBackgroundImage.height * scale;
+                
+                // クロップ位置に基づいてY座標を計算
+                const maxOffset = scaledHeight - canvas.height;
+                const yOffset = -(maxOffset * (cropPosition / 100));
+                
+                ctx.drawImage(currentBackgroundImage, 0, yOffset, canvas.width, scaledHeight);
+                
+                // オーバーレイで文字を見やすくする
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                drawTextContent();
+            } else {
+                // デフォルトグラデーション
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#41c9b4');
+                gradient.addColorStop(1, '#369884');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                drawTextContent();
+            }
+        }
+        
+        // ファイル選択時にクロッパーモーダルを開く
+        document.getElementById('backgroundImage').addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        currentBackgroundImage = img;
+                        openCropperModal(event.target.result);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+        
+        function openCropperModal(imageSrc) {
+            const modal = document.getElementById('cropperModal');
+            const cropperImage = document.getElementById('cropperImage');
+            const positionSlider = document.getElementById('positionSlider');
+            
+            cropperImage.src = imageSrc;
+            positionSlider.value = cropPosition;
+            modal.style.display = 'block';
+            
+            // スライダーの変更を監視
+            positionSlider.oninput = function() {
+                updateCropperPreview(this.value);
+            };
+            
+            // 画像読み込み後にプレビューを更新
+            cropperImage.onload = function() {
+                updateCropperPreview(cropPosition);
+            };
+        }
+        
+        function updateCropperPreview(position) {
+            const cropperImage = document.getElementById('cropperImage');
+            const previewContainer = document.querySelector('.cropper-preview');
+            
+            if (cropperImage.naturalHeight > 0) {
+                const containerHeight = previewContainer.clientHeight;
+                const containerWidth = previewContainer.clientWidth;
+                const imageAspectRatio = cropperImage.naturalWidth / cropperImage.naturalHeight;
+                
+                // CSSのwidthは100%に設定済みなので、高さのみ計算
+                const scaledHeight = containerWidth / imageAspectRatio;
+                
+                if (scaledHeight > containerHeight) {
+                    // 画像が高い場合のみクロップ位置を適用
+                    const maxOffset = scaledHeight - containerHeight;
+                    const yOffset = -(maxOffset * (position / 100));
+                    cropperImage.style.top = yOffset + 'px';
+                } else {
+                    // 画像が低い場合は中央配置
+                    const yOffset = (containerHeight - scaledHeight) / 2;
+                    cropperImage.style.top = yOffset + 'px';
+                }
+            }
+        }
+        
+        function closeCropperModal() {
+            document.getElementById('cropperModal').style.display = 'none';
+            // ファイル選択をリセット
+            document.getElementById('backgroundImage').value = '';
+            currentBackgroundImage = null;
+        }
+        
+        function applyCrop() {
+            const positionSlider = document.getElementById('positionSlider');
+            cropPosition = parseInt(positionSlider.value);
+            document.getElementById('cropperModal').style.display = 'none';
+        }
+        
+        function drawTextContent() {
+            const title = document.getElementById('title').value;
+            const summary = document.getElementById('summary').value;
+            const watermark = document.getElementById('watermark').value;
+
+
+            // タイトル
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 48px -apple-system, BlinkMacSystemFont, sans-serif';
+            
+            // タイトルを複数行に分割
+            const words = title.split('');
+            let line = '';
+            let lines = [];
+            const maxWidth = canvas.width - 100;
+            
+            for (let i = 0; i < words.length; i++) {
+                const testLine = line + words[i];
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth && line !== '') {
+                    lines.push(line);
+                    line = words[i];
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line);
+
+            // タイトルを描画（左上に配置）
+            const titleStartY = 120;
+            lines.forEach((line, index) => {
+                ctx.fillText(line, 50, titleStartY + (index * 60));
+            });
+            
+            // 記事概要を描画（タイトルの下）
+            if (summary) {
+                ctx.font = '28px -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                
+                // 改行コードで分割
+                const summaryLines = summary.split('\n');
+                
+                // 概要を描画
+                const summaryStartY = titleStartY + (lines.length * 60) + 40;
+                summaryLines.forEach((line, index) => {
+                    ctx.fillText(line, 50, summaryStartY + (index * 40));
+                });
+            }
+
+
+            // ウォーターマーク（もしあれば）
+            if (watermark) {
+                ctx.font = '20px -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.textAlign = 'right';
+                ctx.fillText(`@${watermark}`, canvas.width - 50, canvas.height - 50);
+                ctx.textAlign = 'left'; // リセット
+            }
+
+            // 装飾的な要素（背景画像がない場合のみ）
+            if (!currentBackgroundImage) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.beginPath();
+                ctx.arc(canvas.width - 100, 150, 80, 0, 2 * Math.PI);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(canvas.width - 200, canvas.height - 100, 60, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
+            // キャンバスを表示
+            canvas.style.display = 'block';
+            downloadSection.style.display = 'block';
+
+            // ダウンロードリンクを設定
+            setupDownloadLinks();
+        }
+
+        // モーダル外クリックで閉じる
+        window.onclick = function(event) {
+            const modal = document.getElementById('cropperModal');
+            if (event.target === modal) {
+                closeCropperModal();
+            }
+        };
+        
+        function setupDownloadLinks() {
+            // PNG ダウンロード
+            downloadBtn.href = canvas.toDataURL('image/png');
+            
+            // JPG ダウンロード
+            const jpgCanvas = document.createElement('canvas');
+            const jpgCtx = jpgCanvas.getContext('2d');
+            jpgCanvas.width = canvas.width;
+            jpgCanvas.height = canvas.height;
+            
+            // 白い背景を追加（JPGは透明度をサポートしないため）
+            jpgCtx.fillStyle = 'white';
+            jpgCtx.fillRect(0, 0, jpgCanvas.width, jpgCanvas.height);
+            jpgCtx.drawImage(canvas, 0, 0);
+            
+            downloadJpgBtn.href = jpgCanvas.toDataURL('image/jpeg', 0.9);
+        }
+    </script>
+</body>
+</html>
