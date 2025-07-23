@@ -485,21 +485,45 @@
         };
         
         function setupDownloadLinks() {
-            // PNG ダウンロード
-            downloadBtn.href = canvas.toDataURL('image/png');
+            // PNG ダウンロード用のイベントリスナー
+            downloadBtn.onclick = function(e) {
+                e.preventDefault();
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'note-thumbnail.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 'image/png');
+            };
             
-            // JPG ダウンロード
-            const jpgCanvas = document.createElement('canvas');
-            const jpgCtx = jpgCanvas.getContext('2d');
-            jpgCanvas.width = canvas.width;
-            jpgCanvas.height = canvas.height;
-            
-            // 白い背景を追加（JPGは透明度をサポートしないため）
-            jpgCtx.fillStyle = 'white';
-            jpgCtx.fillRect(0, 0, jpgCanvas.width, jpgCanvas.height);
-            jpgCtx.drawImage(canvas, 0, 0);
-            
-            downloadJpgBtn.href = jpgCanvas.toDataURL('image/jpeg', 0.9);
+            // JPG ダウンロード用のイベントリスナー
+            downloadJpgBtn.onclick = function(e) {
+                e.preventDefault();
+                const jpgCanvas = document.createElement('canvas');
+                const jpgCtx = jpgCanvas.getContext('2d');
+                jpgCanvas.width = canvas.width;
+                jpgCanvas.height = canvas.height;
+                
+                // 白い背景を追加（JPGは透明度をサポートしないため）
+                jpgCtx.fillStyle = 'white';
+                jpgCtx.fillRect(0, 0, jpgCanvas.width, jpgCanvas.height);
+                jpgCtx.drawImage(canvas, 0, 0);
+                
+                jpgCanvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'note-thumbnail.jpg';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 'image/jpeg', 0.9);
+            };
         }
     </script>
 </body>
