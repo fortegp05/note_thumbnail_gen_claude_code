@@ -87,6 +87,14 @@
             margin: 20px 0;
         }
         
+        .preview-image {
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            max-width: 100%;
+            margin: 20px 0;
+            display: none;
+        }
+        
         .download-btn {
             background: #4267B2;
             color: white;
@@ -235,6 +243,7 @@
         
         <div class="preview-section">
             <canvas id="thumbnailCanvas" width="1200" height="630" style="display: none;"></canvas>
+            <img id="previewImage" class="preview-image" alt="Generated Thumbnail" />
             <div id="downloadSection" style="display: none;">
                 <a id="downloadBtn" class="download-btn" download="note-thumbnail.png">PNG でダウンロード</a>
                 <a id="downloadJpgBtn" class="download-btn" download="note-thumbnail.jpg">JPG でダウンロード</a>
@@ -276,9 +285,16 @@
         const downloadSection = document.getElementById('downloadSection');
         const downloadBtn = document.getElementById('downloadBtn');
         const downloadJpgBtn = document.getElementById('downloadJpgBtn');
+        const previewImage = document.getElementById('previewImage');
         
         let currentBackgroundImage = null;
         let cropPosition = 50; // パーセンテージ (0-100)
+        
+        // スマホ判定
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   window.innerWidth < 768;
+        }
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -468,8 +484,19 @@
                 ctx.fill();
             }
 
-            // キャンバスを表示
-            canvas.style.display = 'block';
+            // キャンバスまたは画像を表示
+            if (isMobileDevice()) {
+                // スマホの場合はimg要素で表示
+                const dataURL = canvas.toDataURL('image/png');
+                previewImage.src = dataURL;
+                previewImage.style.display = 'block';
+                canvas.style.display = 'none';
+            } else {
+                // PCの場合はcanvasで表示
+                canvas.style.display = 'block';
+                previewImage.style.display = 'none';
+            }
+            
             downloadSection.style.display = 'block';
 
             // ダウンロードリンクを設定
